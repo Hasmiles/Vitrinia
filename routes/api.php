@@ -1,0 +1,103 @@
+<?php
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\GeneralController;
+use App\Http\Controllers\OrderController;
+use App\Http\Controllers\ProductController;
+use App\Http\Controllers\SellerController;
+use App\Models\User;
+use App\Services\FCMService;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
+use Kreait\Firebase\Factory;
+use Kreait\Firebase\Messaging\CloudMessage;
+use Kreait\Firebase\Messaging\Notification;
+
+Route::prefix('auth')->group(function () {
+    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/register', [AuthController::class, 'register']);
+});
+
+Route::post('/email/verification-notification', function (Request $request) {
+    
+    if ($request->user()->hasVerifiedEmail()) {
+        return response()->json(['message' => 'E-posta adresi zaten doğrulanmış.'], 400);
+    }
+
+    $request->user()->sendEmailVerificationNotification();
+
+    return response()->json(['message' => 'Doğrulama bağlantısı e-posta adresinize tekrar gönderildi!']);
+
+})->middleware(['auth:sanctum', 'throttle:6,1']);
+// Route::get('/user', function (Request $request) {
+//     return $request->user();
+// })->middleware('auth:sanctum');
+
+Route::get('/fcm-kreait-test', function () {
+    try {
+        // 1. Firebase bağlantısını başlat (Örnek kod)
+        $factory = (new Factory)->withServiceAccount(base_path('firebase_auth.json'))
+        ->withDatabaseUri('https://vitrinia-519ff-default-rtdb.firebaseio.com');
+        $database = $factory->createDatabase();
+
+        // 2. Rastgele bir veriyi veya kök dizini çekmeyi dene
+        // 'users' yerine veritabanında kesin olduğunu bildiğin bir yol yaz
+        $reference = $database->getReference('/'); 
+        $snapshot = $reference->getSnapshot();
+        $value = $snapshot->getValue();
+
+        // 3. SONUCU GÖR
+        dd($value); 
+
+    } catch (\Exception $e) {
+        // 4. HATA VARSA BURAYI GÖRÜRSÜN
+        dd('Bağlantı Hatası: ' . $e->getMessage());
+    }
+});
+
+
+Route::get('/bildirim-test', function () {
+    $user = User::find(32);
+    
+    // Token kontrolü: Başında ExponentPushToken var mı?
+    $token = trim($user->fcm_token); 
+
+    // Kontrol için ekrana basalım
+    dump("Gönderilen Token: " . $token);
+
+    $response = Http::post('https://exp.host/--/api/v2/push/send', [
+        'to' => $token,
+        'title' => 'Son Test 🚀',
+        'body' => 'Parantez sorunu çözüldü, bu mesaj gelmeli.',
+        'data' => ['test' => true],
+        'sound' => 'default', // Ses çalsın
+    ]);
+
+    return $response->json();
+});
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::prefix('auth')->group(function () {
+        Route::post('/logout', [AuthController::class, 'logout']);
+        Route::get('/user', [AuthController::class, 'user']);
+    });
+    Route::resource('sellers/me', SellerController::class);
+    Route::post('sellers/update_push_token', [SellerController::class, 'updatePushToken']);
+    Route::delete('sellers/me', [SellerController::class, 'destroy']);
+    Route::resource('products', ProductController::class);
+    Route::delete('/products', [ProductController::class, 'destroy']);
+    Route::patch('/orders/{id}/status', [OrderController::class, 'changeSituationForOrder']);
+    
+    
+    Route::get('/sellers/report', [SellerController::class, 'reportForSeller']); // Yapılacak
+    Route::get('/sellers/dashboard', [SellerController::class, 'dashboard']); // Yapılacak
+    Route::resource('orders', OrderController::class)->except(['update']);
+});
+Route::get('/orders/{id}/label', [OrderController::class, 'createLabel']); // Yapılacak
+Route::put('orders/{short_code}', [OrderController::class, 'update']);
+Route::get('/orders/public/{kisa_kod}', [OrderController::class, 'getOrderDetailsForCustomer']);
+Route::get('options', [GeneralController::class, 'options']);
+Route::get('status', [GeneralController::class, 'statuses']);
+
