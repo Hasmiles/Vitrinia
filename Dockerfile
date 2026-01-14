@@ -21,4 +21,4 @@ COPY . .
 RUN composer install --no-dev --optimize-autoloader
 
 # Render'ın verdiği PORT üzerinden uygulamayı başlat
-CMD sh -c "php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=$PORT"
+CMD php artisan serve --host=0.0.0.0 --port=$PORT

@@ -5,6 +5,7 @@ use Illuminate\Auth\Events\Verified;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 
 Route::get('/email/verify', function () {
     return view('auth.verify-email');
@@ -33,3 +34,19 @@ Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) 
 
 })->middleware(['signed'])->name('verification.verify');
 
+Route::get('/kurulum-yap', function () {
+    try {
+        // 1. Tabloları oluştur/güncelle (Migrate)
+        Artisan::call('migrate', ['--force' => true]);
+        $cikti = '<h3>Migration Çıktısı:</h3><pre>' . Artisan::output() . '</pre>';
+
+        // 2. Seed işlemini çalıştır (Veri Ekleme)
+        // Not: --force production ortamında onay sormaması için şarttır.
+        Artisan::call('db:seed', ['--force' => true]);
+        $cikti .= '<h3>Seed Çıktısı:</h3><pre>' . Artisan::output() . '</pre>';
+        
+        return $cikti;
+    } catch (\Exception $e) {
+        return '<h1 style="color:red">Hata Oluştu!</h1><p>' . $e->getMessage() . '</p>';
+    }
+});
