@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Mail;
 
 Route::get('/email/verify', function () {
     return view('auth.verify-email');
@@ -48,5 +49,20 @@ Route::get('/kurulum-yap', function () {
         return $cikti;
     } catch (\Exception $e) {
         return '<h1 style="color:red">Hata Oluştu!</h1><p>' . $e->getMessage() . '</p>';
+    }
+});
+
+Route::get('/mail-test', function () {
+    try {
+        // Raw mail ile test (View dosyası gerektirmez)
+        Mail::raw('Bu bir test mailidir.', function ($message) {
+            $message->to('senin_kendi_mailin@gmail.com') // Buraya kendi mailini yaz
+                    ->subject('Render Mail Testi');
+        });
+
+        return 'Mail başarıyla gönderildi! Ayarlar doğru.';
+    } catch (\Exception $e) {
+        // Hatayı ekrana bas
+        return 'HATA OLUŞTU: ' . $e->getMessage();
     }
 });
