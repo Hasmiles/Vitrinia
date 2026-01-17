@@ -31,31 +31,6 @@ Route::post('/email/verification-notification', function (Request $request) {
     return response()->json(['message' => 'Doğrulama bağlantısı e-posta adresinize tekrar gönderildi!']);
 
 })->middleware(['auth:sanctum', 'throttle:6,1']);
-// Route::get('/user', function (Request $request) {
-//     return $request->user();
-// })->middleware('auth:sanctum');
-
-Route::get('/fcm-kreait-test', function () {
-    try {
-        // 1. Firebase bağlantısını başlat (Örnek kod)
-        $factory = (new Factory)->withServiceAccount(base_path('firebase_auth.json'))
-        ->withDatabaseUri('https://vitrinia-519ff-default-rtdb.firebaseio.com');
-        $database = $factory->createDatabase();
-
-        // 2. Rastgele bir veriyi veya kök dizini çekmeyi dene
-        // 'users' yerine veritabanında kesin olduğunu bildiğin bir yol yaz
-        $reference = $database->getReference('/'); 
-        $snapshot = $reference->getSnapshot();
-        $value = $snapshot->getValue();
-
-        // 3. SONUCU GÖR
-        dd($value); 
-
-    } catch (\Exception $e) {
-        // 4. HATA VARSA BURAYI GÖRÜRSÜN
-        dd('Bağlantı Hatası: ' . $e->getMessage());
-    }
-});
 
 
 Route::get('/bildirim-test', function () {

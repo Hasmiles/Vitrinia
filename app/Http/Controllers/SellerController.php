@@ -155,9 +155,9 @@ class SellerController extends Controller
         if ($previousRevenue > 0) {
             $growthRate = (($stats->total_revenue - $previousRevenue) / $previousRevenue) * 100;
         } elseif ($stats->total_revenue > 0) {
-            $growthRate = 100;  
+            $growthRate = 100;
         } else {
-            $growthRate = 0;  
+            $growthRate = 0;
         }
         $summary = [
             'totalRevenue' => $stats->total_revenue ?? 0,
@@ -236,6 +236,166 @@ class SellerController extends Controller
             ->clone()
             ->where('created_at', '>=', $startMonthDate)
             ->selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month_key, SUM((SELECT SUM(price) FROM order_products WHERE order_id = orders.id)) as total')
+            ->groupBy('month_key')
+            ->pluck('total', 'month_key');
+
+        for ($i = 0; $i < 6; $i++) {
+            $date = $startMonthDate->copy()->addMonths($i);
+            $key = $date->format('Y-m');
+
+            $monthlyLabels[] = $date->locale('tr')->isoFormat('MMM');  // Oca, Şub...
+
+            $val = $monthlyDB[$key] ?? 0;
+            $monthlyData[] = $val;
+            $monthlyTotal += $val;
+        }
+
+        return response()->json([
+            'summary' => $summary,
+            'charts' => [
+                'daily' => [
+                    'labels' => $dailyLabels,
+                    'datasets' => [['data' => $dailyData]],
+                    'total' => $dailyTotal,
+                ],
+                'weekly' => [
+                    'labels' => $weeklyLabels,
+                    'datasets' => [['data' => $weeklyData]],
+                    'total' => $weeklyTotal,
+                ],
+                'monthly' => [
+                    'labels' => $monthlyLabels,
+                    'datasets' => [['data' => $monthlyData]],
+                    'total' => $monthlyTotal,
+                ],
+            ],
+            'topSellingProducts' => $topSellingProducts,
+            'paymentMethods' => $paymentMethods,
+            'lowStockAlerts' => $lowStockAlerts
+        ]);
+    }
+
+    public function psql_dashboard(Request $request) {
+        $start_date = $request->start_date;
+        $end_date = $request->end_date;
+
+        $user = Auth::user();
+        $seller = $user->seller;
+        $orders = Order::where('seller_id', $seller->id);
+        if ($start_date && $end_date) {
+            $orders->whereBetween('created_at', [$start_date, $end_date]);
+            $currentStart = Carbon::parse($request->start_date);
+            $currentEnd = Carbon::parse($request->end_date);
+            $diffInDays = $currentStart->diffInDays($currentEnd);
+            $prevStart = $currentStart->copy()->subDays($diffInDays + 1);
+            $prevEnd = $currentStart->copy()->subDay();
+        } else {
+            $currentStart = now()->startOfMonth();  // 1 Ocak
+            $currentEnd = now();  // 11 Ocak (Bugün)
+
+            $prevStart = now()->subMonth()->startOfMonth();  // 1 Aralık
+            $prevEnd = now()->subMonth();
+        }
+
+        $stats = $orders->clone()->selectRaw('
+            COUNT(*) as total_orders,
+            SUM((SELECT SUM(price) FROM order_products WHERE order_id = orders.id)) as total_revenue,
+            SUM(CASE WHEN status = 5 THEN 1 ELSE 0 END) as total_completed,
+            SUM(CASE WHEN status = 2 THEN 1 ELSE 0 END) as total_pending
+        ')->first();
+        $prevStats = Order::where('seller_id', $seller->id)
+            ->whereBetween('created_at', [$prevStart, $prevEnd])
+            ->selectRaw('
+            SUM((SELECT SUM(price) FROM order_products WHERE order_id = orders.id)) as total_revenue
+        ')
+            ->first();
+        $previousRevenue = $prevStats->total_revenue ?? 0;
+        $growthRate = 0;
+
+        if ($previousRevenue > 0) {
+            $growthRate = (($stats->total_revenue - $previousRevenue) / $previousRevenue) * 100;
+        } elseif ($stats->total_revenue > 0) {
+            $growthRate = 100;  
+        } else {
+            $growthRate = 0;  
+        }
+        $summary = [
+            'totalRevenue' => $stats->total_revenue ?? 0,
+            'totalOrders' => $stats->total_orders,
+            'totalCompleted' => $stats->total_completed,
+            'growthRate' => $growthRate,  // En son
+            'totalPending' => $stats->total_pending,
+        ];
+        $my_products = Product::where('seller_id', $seller->id);
+        $topSellingProducts = PopularProductResource::collection($my_products->clone()->withSum('orderProduct', 'price')->withCount('orderProduct')->orderBy('order_product_count', 'desc')->limit(3)->get());
+
+        $lowStockAlerts = LowStockResource::collection($my_products->where('stock', '<', 5)->get());
+        $paymentMethods = PaymentMethodResource::collection($orders
+            ->clone()
+            ->select('type', DB::raw('count(*) as total'))
+            ->groupBy('type')
+            ->get());
+
+        $startOfWeek = now()->startOfWeek();
+        $endOfWeek = now()->endOfWeek();
+
+        $dailyDB = $orders
+            ->clone()
+            ->whereBetween('created_at', [$startOfWeek, $endOfWeek])
+            ->selectRaw('created_at::DATE as date, SUM((SELECT SUM(price) FROM order_products WHERE order_id = orders.id)) as total')
+            ->groupBy('date')
+            ->pluck('total', 'date');
+
+        $dailyLabels = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+        $dailyData = [];
+        $dailyTotal = 0;
+
+        for ($i = 0; $i < 7; $i++) {
+            $dateKey = $startOfWeek->copy()->addDays($i)->format('Y-m-d');
+
+            $val = $dailyDB[$dateKey] ?? 0;
+            $dailyData[] = $val;
+            $dailyTotal += $val;
+        }
+
+        $startOfMonth = now()->startOfMonth();
+        $endOfMonth = now()->endOfMonth();
+
+        $weeklyDB = $orders
+            ->clone()
+            ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
+            ->selectRaw('EXTRACT(WEEK FROM created_at) as week_num, SUM((SELECT SUM(price) FROM order_products WHERE order_id = orders.id)) as total')
+            ->groupBy('week_num')
+            ->pluck('total', 'week_num');
+
+        $weeklyLabels = [];
+        $weeklyData = [];
+        $weeklyTotal = 0;
+
+        $weeksInMonth = $endOfMonth->weekOfYear - $startOfMonth->weekOfYear + 1;
+        if ($weeksInMonth < 0)
+            $weeksInMonth = 5;
+
+        for ($i = 0; $i < $weeksInMonth; $i++) {
+            $currentWeekNum = $startOfMonth->weekOfYear + $i;
+
+            $weeklyLabels[] = ($i + 1) . '. Hafta';
+
+            $val = $weeklyDB[$currentWeekNum] ?? 0;
+            $weeklyData[] = $val;
+            $weeklyTotal += $val;
+        }
+
+        $monthlyLabels = [];
+        $monthlyData = [];
+        $monthlyTotal = 0;
+
+        $startMonthDate = now()->subMonths(5)->startOfMonth();
+
+        $monthlyDB = $orders
+            ->clone()
+            ->where('created_at', '>=', $startMonthDate)
+            ->selectRaw('TO_CHAR(created_at, \'YYYY-MM\') as month_key, SUM((SELECT SUM(price) FROM order_products WHERE order_id = orders.id)) as total')
             ->groupBy('month_key')
             ->pluck('total', 'month_key');
 
