@@ -52,17 +52,14 @@ Route::get('/kurulum-yap', function () {
     }
 });
 
-Route::get('/mail-test', function () {
+Route::get('/kuyruk-manuel-tetikle', function () {
     try {
-        // Raw mail ile test (View dosyası gerektirmez)
-        Mail::raw('Bu bir test mailidir.', function ($message) {
-            $message->to('senin_kendi_mailin@gmail.com') // Buraya kendi mailini yaz
-                    ->subject('Render Mail Testi');
-        });
-
-        return 'Mail başarıyla gönderildi! Ayarlar doğru.';
+        // --stop-when-empty: Sadece bekleyen işleri yap ve dur.
+        // --timeout=20: Bir iş 20 saniyeden uzun sürerse hata ver (Tarayıcı timeout yemesin diye).
+        Artisan::call('queue:work --stop-when-empty --timeout=20');
+        
+        return "Kral, birikmiş kuyruk işlemleri tamamlandı! Çıktı: <br>" . nl2br(Artisan::output());
     } catch (\Exception $e) {
-        // Hatayı ekrana bas
-        return 'HATA OLUŞTU: ' . $e->getMessage();
+        return "Hata oldu: " . $e->getMessage();
     }
 });
