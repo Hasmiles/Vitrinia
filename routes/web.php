@@ -52,14 +52,14 @@ Route::get('/kurulum-yap', function () {
     }
 });
 
-Route::get('/kuyruk-manuel-tetikle', function () {
-    try {
-        // --stop-when-empty: Sadece bekleyen işleri yap ve dur.
-        // --timeout=20: Bir iş 20 saniyeden uzun sürerse hata ver (Tarayıcı timeout yemesin diye).
-        Artisan::call('queue:work --stop-when-empty --timeout=20');
-        
-        return "Kral, birikmiş kuyruk işlemleri tamamlandı! Çıktı: <br>" . nl2br(Artisan::output());
-    } catch (\Exception $e) {
-        return "Hata oldu: " . $e->getMessage();
+Route::get('/manuel-duzeltme', function () {
+    // ÖRNEK: ID'si 1 olan kullanıcıyı bul ve aktif et
+    $user = User::find(1); 
+    if ($user) {
+        $user->email_verified_at = now(); // Veya $user->status = 1;
+        $user->save();
+        return "Kral, kullanıcı (ID: 1) başarıyla aktif edildi! ✅";
     }
+    
+    return "Böyle bir kayıt bulunamadı kral. ID'yi kontrol et. ❌";
 });
