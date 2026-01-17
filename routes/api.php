@@ -67,7 +67,7 @@ Route::middleware('auth:sanctum')->group(function () {
     
     
     Route::get('/sellers/report', [SellerController::class, 'reportForSeller']); // Yapılacak
-    Route::get('/sellers/dashboard', [SellerController::class, 'dashboard']); // Yapılacak
+    Route::get('/sellers/dashboard', [SellerController::class, 'psql_dashboard']); // Yapılacak
     Route::resource('orders', OrderController::class)->except(['update']);
 });
 Route::get('/orders/{id}/label', [OrderController::class, 'createLabel']); // Yapılacak
