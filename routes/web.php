@@ -71,3 +71,14 @@ Route::get('/manuel-duzeltme/{id}', function ($id) {
     
     return "Böyle bir kayıt (ID: $id) bulunamadı kral. ❌";
 });
+
+Route::get('/linki-duzelt', function () {
+    try {
+        // --force: Eski, bozuk bir link varsa onu siler ve tazesini oluşturur.
+        Artisan::call('storage:link --force');
+        
+        return "Kral, Storage linki başarıyla oluşturuldu! ✅ <br> Çıktı: " . Artisan::output();
+    } catch (\Exception $e) {
+        return "Hata oldu kral: " . $e->getMessage();
+    }
+});
