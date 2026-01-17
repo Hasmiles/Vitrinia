@@ -53,6 +53,7 @@ class SellerController extends Controller
         $seller->shop_name = $request->shop_name ?? '';
         $seller->phone = $request->phone ?? '';
         $seller->iban = $request->iban ?? '';
+        $seller->is_completed = 1;
         $customFileName = $seller->logo ?? '';
         if ($request->hasFile('image')) {
             $image = $request->file('image');

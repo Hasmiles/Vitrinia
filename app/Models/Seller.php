@@ -11,6 +11,7 @@ class Seller extends Model
         'shop_name',
         'logo',
         'phone',
-        'iban'
+        'iban',
+        'is_completed'
     ];
 }
