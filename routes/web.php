@@ -52,14 +52,22 @@ Route::get('/kurulum-yap', function () {
     }
 });
 
-Route::get('/manuel-duzeltme', function () {
-    // ÖRNEK: ID'si 1 olan kullanıcıyı bul ve aktif et
-    $user = User::find(1); 
+Route::get('/manuel-duzeltme/{id}', function ($id) {
+    
+    // Gelen $id'yi kullanarak kullanıcıyı buluyoruz
+    $user = User::find($id); 
+    
     if ($user) {
-        $user->email_verified_at = now(); // Veya $user->status = 1;
+        $user->email_verified_at = now();
+        $user->is_verified = 1;
         $user->save();
-        return "Kral, kullanıcı (ID: 1) başarıyla aktif edildi! ✅";
+        
+        // Mesaja da $id'yi ekleyelim ki emin olalım
+        return response()->json([
+            'message' => 'Kral, kullanıcı başarıyla aktif edildi!',
+            'user' => $user
+        ]);
     }
     
-    return "Böyle bir kayıt bulunamadı kral. ID'yi kontrol et. ❌";
+    return "Böyle bir kayıt (ID: $id) bulunamadı kral. ❌";
 });
