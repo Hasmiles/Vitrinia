@@ -124,12 +124,11 @@ class ProductController extends Controller
             $product->image = $customFileName;
             $product->save();
             $values = $request->values;
+            $sub_option_ids = [];
             if ($values) {
-                $sub_option = SubOption::whereIn('value', $values)->pluck('id');
-                $product->subOptions()->attach($sub_option);
-            }else{
-                $product->subOptions()->detach();
+                $sub_option_ids = SubOption::whereIn('value', $values)->pluck('id');
             }
+            $product->subOptions()->sync($sub_option_ids);
             $product->load('subOptions');
             DB::commit();
             return response()->json([
