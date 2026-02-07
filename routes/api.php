@@ -30,25 +30,22 @@ Route::post('/email/verification-notification', function (Request $request) {
     return response()->json(['message' => 'Doğrulama bağlantısı e-posta adresinize tekrar gönderildi!']);
 })->middleware(['auth:sanctum', 'throttle:6,1']);
 
-Route::get('/bildirim-test', function () {
-    $user = User::find(32);
+// Route::get('/bildirim-test', function () {
+//     $user = User::find(32);
+//     $token = trim($user->fcm_token);
 
-    // Token kontrolü: Başında ExponentPushToken var mı?
-    $token = trim($user->fcm_token);
+//     dump('Gönderilen Token: ' . $token);
 
-    // Kontrol için ekrana basalım
-    dump('Gönderilen Token: ' . $token);
+//     $response = Http::post('https://exp.host/--/api/v2/push/send', [
+//         'to' => $token,
+//         'title' => 'Son Test 🚀',
+//         'body' => 'Parantez sorunu çözüldü, bu mesaj gelmeli.',
+//         'data' => ['test' => true],
+//         'sound' => 'default',  // Ses çalsın
+//     ]);
 
-    $response = Http::post('https://exp.host/--/api/v2/push/send', [
-        'to' => $token,
-        'title' => 'Son Test 🚀',
-        'body' => 'Parantez sorunu çözüldü, bu mesaj gelmeli.',
-        'data' => ['test' => true],
-        'sound' => 'default',  // Ses çalsın
-    ]);
-
-    return $response->json();
-});
+//     return $response->json();
+// });
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('auth')->group(function () {

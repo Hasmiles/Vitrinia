@@ -35,50 +35,41 @@ Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) 
 
 })->middleware(['signed'])->name('verification.verify');
 
-Route::get('/kurulum-yap', function () {
-    try {
-        // 1. Tabloları oluştur/güncelle (Migrate)
-        Artisan::call('migrate', ['--force' => true]);
-        $cikti = '<h3>Migration Çıktısı:</h3><pre>' . Artisan::output() . '</pre>';
-
-        // 2. Seed işlemini çalıştır (Veri Ekleme)
-        // Not: --force production ortamında onay sormaması için şarttır.
-        Artisan::call('db:seed', ['--force' => true]);
-        $cikti .= '<h3>Seed Çıktısı:</h3><pre>' . Artisan::output() . '</pre>';
+// Route::get('/kurulum-yap', function () {
+//     try {
+//         Artisan::call('migrate', ['--force' => true]);
+//         $cikti = '<h3>Migration Çıktısı:</h3><pre>' . Artisan::output() . '</pre>';
+//         Artisan::call('db:seed', ['--force' => true]);
+//         $cikti .= '<h3>Seed Çıktısı:</h3><pre>' . Artisan::output() . '</pre>';
         
-        return $cikti;
-    } catch (\Exception $e) {
-        return '<h1 style="color:red">Hata Oluştu!</h1><p>' . $e->getMessage() . '</p>';
-    }
-});
+//         return $cikti;
+//     } catch (\Exception $e) {
+//         return '<h1 style="color:red">Hata Oluştu!</h1><p>' . $e->getMessage() . '</p>';
+//     }
+// });
 
-Route::get('/manuel-duzeltme/{id}', function ($id) {
+// Route::get('/manuel-duzeltme/{id}', function ($id) {
+//     $user = User::find($id); 
     
-    // Gelen $id'yi kullanarak kullanıcıyı buluyoruz
-    $user = User::find($id); 
+//     if ($user) {
+//         $user->email_verified_at = now();
+//         $user->is_verified = 1;
+//         $user->save();
+//         return response()->json([
+//             'message' => 'Kral, kullanıcı başarıyla aktif edildi!',
+//             'user' => $user
+//         ]);
+//     }
     
-    if ($user) {
-        $user->email_verified_at = now();
-        $user->is_verified = 1;
-        $user->save();
-        
-        // Mesaja da $id'yi ekleyelim ki emin olalım
-        return response()->json([
-            'message' => 'Kral, kullanıcı başarıyla aktif edildi!',
-            'user' => $user
-        ]);
-    }
-    
-    return "Böyle bir kayıt (ID: $id) bulunamadı kral. ❌";
-});
+//     return "Böyle bir kayıt (ID: $id) bulunamadı kral. ❌";
+// });
 
-Route::get('/linki-duzelt', function () {
-    try {
-        // --force: Eski, bozuk bir link varsa onu siler ve tazesini oluşturur.
-        Artisan::call('storage:link --force');
+// Route::get('/linki-duzelt', function () {
+//     try {
+//         Artisan::call('storage:link --force');
         
-        return "Kral, Storage linki başarıyla oluşturuldu! ✅ <br> Çıktı: " . Artisan::output();
-    } catch (\Exception $e) {
-        return "Hata oldu kral: " . $e->getMessage();
-    }
-});
+//         return "Kral, Storage linki başarıyla oluşturuldu! ✅ <br> Çıktı: " . Artisan::output();
+//     } catch (\Exception $e) {
+//         return "Hata oldu kral: " . $e->getMessage();
+//     }
+// });

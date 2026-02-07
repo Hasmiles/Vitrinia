@@ -244,8 +244,6 @@ class OrderController extends Controller
 
         $pdf = Pdf::loadView('ptt_cikti', compact('data', 'barcode'));
 
-        // PTT Haber Kartı genelde A6 veya özel boyuttur.
-        // Özel boyut için: ->setPaper([0, 0, 283.46, 425.20], 'landscape'); // Nokta (pt) cinsinden
         $pdf->setPaper('a6', 'landscape');
 
         return $pdf->download('ptt-kart-' . $data['barkod_no'] . '.pdf');
